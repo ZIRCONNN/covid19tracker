@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COVID-19 Tracker - Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+  <style>
+    /* Add CSS to control the size of the chart container */
+    .dashboard-chart {
+      width: 100%;
+      max-width: 600px; /* Set a maximum width for the chart */
+      margin: 0 auto; /* Center the chart horizontally */
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>COVID-19 Tracker</h1>
+  </header>
+
+  <main>
+    <div class="welcome-section">
+      <h2>Welcome to the Dashboard</h2>
+      <p>Stay informed with the latest COVID-19 statistics.</p>
+    </div>
+
+    <div class="dashboard-card">
+      <h3>Total Cases</h3>
+      <p id="total-cases">Loading...</p>
+    </div>
+
+    <div class="dashboard-card">
+      <h3>Recovered Cases</h3>
+      <p id="recovered-cases">Loading...</p>
+    </div>
+
+    <div class="dashboard-card">
+      <h3>Deaths</h3>
+      <p id="deaths">Loading...</p>
+    </div>
+
+    <!-- <div class="dashboard-chart">
+      <h3>Trend Graph</h3>
+      <canvas id="trend-chart"></canvas>
+    </div> -->
+
+    <div class="button-container">
+      <button onclick="navigateToIndex()">Go to Index</button>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2023 COVID-19 Tracker. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // Fetch COVID-19 statistics and update dashboard
+    function updateDashboard() {
+      // Fetch global COVID-19 data
+      fetch('https://disease.sh/v3/covid-19/all')
+        .then(response => response.json())
+        .then(data => {
+          const totalCases = data.cases;
+          const recoveredCases = data.recovered;
+          const deaths = data.deaths;
+
+          // Update DOM with fetched data
+          document.getElementById('total-cases').textContent = totalCases.toLocaleString();
+          document.getElementById('recovered-cases').textContent = recoveredCases.toLocaleString();
+          document.getElementById('deaths').textContent = deaths.toLocaleString();
+        })
+        .catch(error => {
+          console.log('Error:', error);
+        });
+    }
+
+    // Calculate the difference in days between two dates
+    function getDayDifference(startDate, endDate) {
+      const oneDay = 24 * 60 * 60 * 1000; // Milliseconds in a day
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      return Math.round(Math.abs((start - end) / oneDay));
+    }
+
+    // Create a line chart using Chart.js library
+    function createChart(chartId, data, labels) {
+      const chartElement = document.getElementById(chartId);
+      new Chart(chartElement, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Cases',
+            data: data,
+            backgroundColor: 'rgba(0, 123, 255, 0.3)',
+            borderColor: 'rgba(0, 123, 255, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          legend: {
+            display: false
+          },
+          scales: {
+            x: {
+              display: true
+            },
+            y: {
+              display: true
+            }
+          }
+        }
+      });
+    }
+
+    // Declare a variable to keep track of whether the chart is already created
+    let isChartCreated = false;
+
+    // Fetch historical COVID-19 data for trend graph
+    const currentYear = new Date().getFullYear();
+    const startDate = `${currentYear}-01-01`;
+    const endDate = new Date().toISOString().split('T')[0];
+    const historicalDataURL = `https://disease.sh/v3/covid-19/historical/all?lastdays=${getDayDifference(startDate, endDate)}`;
+
+    fetch(historicalDataURL)
+      .then(response => response.json())
+      .then(data => {
+        const casesData = Object.values(data.cases);
+        const labels = Object.keys(data.cases);
+
+        // Check if the chart is already created
+        if (!isChartCreated) {
+          // Create trend graph
+          createChart('trend-chart', casesData, labels);
+          isChartCreated = true; // Set the flag to true to prevent re-creation
+        }
+      })
+      .catch(error => {
+        console.log('Error:', error);
+      });
+
+    // Update dashboard and fetch data for charts
+    updateDashboard();
+
+    // Function to navigate to index.html
+    function navigateToIndex() {
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+
+</html>
